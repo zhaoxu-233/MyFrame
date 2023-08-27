@@ -43,7 +43,7 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	ug.POST("signup", u.SingUp)
 	ug.POST("login", u.Login)
 	ug.POST("edit", u.Edit)
-	ug.GET("profile/:name", u.Profile)
+	ug.POST("profile", u.Profile)
 	//server.POST("/user/signup", u.SingUp)
 	//server.POST("/user/login", u.Login)
 	//server.POST("/user/edit", u.Edit)
@@ -180,7 +180,18 @@ func (u *UserHandler) Profile(c *gin.Context) {
 	type ProfileReq struct {
 		Email string `json:"email"`
 	}
+	var req ProfileReq
+	err := c.Bind(&req)
+	if err != nil {
+		c.String(http.StatusOK, "系统错误")
+		return
+	}
+	user, err := u.svc.Profile(c, req.Email)
+	if err != nil {
+		c.String(http.StatusOK, "系统错误")
+		return
+	}
+	fmt.Println(user)
+	c.JSON(http.StatusOK, gin.H{"message": "查询成功", "data": user})
 
-	name := c.Param("name")
-	c.String(http.StatusOK, "profile method info of "+name)
 }

@@ -67,3 +67,16 @@ func (svc *UserService) Edit(c context.Context, email string, user domain.User) 
 	err = svc.repo.EditUser(c, email, user)
 	return err
 }
+
+func (svc *UserService) Profile(c context.Context, email string) (domain.User, error) {
+	//去查找用户
+	u, err := svc.repo.FindByEmail(c, email)
+	if err == repository.ErrUserNotFound {
+		return domain.User{}, ErrInvalidUserorPassWord
+	}
+	if err != nil {
+		return domain.User{}, err
+	}
+	return u, nil
+
+}
