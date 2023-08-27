@@ -1,0 +1,166 @@
+package web
+
+import (
+	"exercise_code/webook/internal/domain"
+	"exercise_code/webook/internal/repository"
+	"exercise_code/webook/internal/service"
+	"fmt"
+	regexp "github.com/dlclark/regexp2"
+	"github.com/gin-gonic/gin"
+	"net/http"
+)
+
+//正则的变量声明
+const (
+	emailRegexPattern = "^\\w+([-+.]\\w+)*@\\w+([-.]\\w+)*\\.\\w+([-.]\\w+)*$"
+	// 和上面比起来，用 ` 看起来就比较清爽
+	passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$`
+
+	userIdKey = "userId"
+)
+
+//在这个上边定义所以和user有关的路由
+type UserHandler struct {
+	svc         *service.UserService
+	emailExp    *regexp.Regexp
+	passwordExp *regexp.Regexp
+}
+
+func NewUserHandler(svc *service.UserService) *UserHandler {
+	return &UserHandler{
+		svc:         svc,
+		emailExp:    regexp.MustCompile(emailRegexPattern, regexp.None),
+		passwordExp: regexp.MustCompile(passwordRegexPattern, regexp.None),
+	}
+}
+
+func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
+	//分组路由
+	ug := server.Group("/users")
+	ug.POST("signup", u.SingUp)
+	ug.POST("login", u.Login)
+	ug.POST("edit", u.Edit)
+	ug.GET("profile/:name", u.Profile)
+	//server.POST("/user/signup", u.SingUp)
+	//server.POST("/user/login", u.Login)
+	//server.POST("/user/edit", u.Edit)
+	//server.GET("/user/profile", u.Profile)
+}
+
+func (u *UserHandler) SingUp(c *gin.Context) {
+	//内部结构体，不想被别的方法使用
+	//定义结构体来接受前端传过来的数据
+	type SignUpReq struct {
+		Email           string `json:"email"`
+		ConfirmPassword string `json:"confirmPassword"`
+		Password        string `json:"password"`
+		Context         string `json:"context"`
+	}
+	var req SignUpReq
+	//bind方法会根据content-type来解析你的数据到req里面
+	//解析错误，就会协会一个400错误
+	//使用bind方法接受请求
+	if err := c.Bind(&req); err != nil {
+		return
+	}
+	//预编译
+	//emailExp := regexp.MustCompile(emailRegexPattern, regexp.None)
+	ok, err := u.emailExp.MatchString(req.Email)
+	if err != nil {
+		//记录log
+		c.String(http.StatusOK, "系统错误")
+		return
+	}
+	if !ok {
+		c.String(http.StatusOK, "邮箱格式错误")
+		return
+	}
+	if req.Password != req.ConfirmPassword {
+		c.String(http.StatusOK, "两次输入密码不一致")
+		return
+	}
+	//passwordExp := regexp.MustCompile(passwordRegexPattern, regexp.None)
+	ok, err = u.passwordExp.MatchString(req.Password)
+	if err != nil {
+		c.String(http.StatusOK, "系统错误")
+		return
+	}
+	if !ok {
+		c.String(http.StatusOK, "密码必须大于8位数")
+		return
+	}
+	err = u.svc.SignUp(c, domain.User{
+		Email:    req.Email,
+		PassWord: req.Password,
+	})
+	//最佳实践
+	//errors.Is(err,service.ErrUserDuplicateEmail)
+	if err == repository.ErrUserDuplicateEmail {
+		c.String(http.StatusOK, "邮箱/密码冲突")
+		return
+	}
+	if err != nil {
+		c.String(http.StatusOK, "系统异常")
+		return
+	}
+	c.String(http.StatusOK, "注册成功")
+	fmt.Printf("%v", req)
+	//数据库操作
+
+}
+func (u *UserHandler) Login(c *gin.Context) {
+	//定义结构体接受前端参数
+	type LoginReq struct {
+		Email    string `json:"email"`
+		PassWord string `json:"passWord"`
+	}
+	var req LoginReq
+	err := c.Bind(&req)
+	if err != nil {
+		return
+	}
+	//获取完前端信息，之后应该调用service中的业务逻辑代码
+	err = u.svc.Login(c, req.Email, req.PassWord)
+	if err == service.ErrInvalidUserorPassWord {
+		c.String(http.StatusOK, "用户名或密码错误")
+		return
+	}
+	if err != nil {
+		c.String(http.StatusOK, "系统错误")
+		return
+	}
+	c.String(http.StatusOK, "login method 登录成功")
+	return
+}
+func (u *UserHandler) Edit(c *gin.Context) {
+	type EditReq struct {
+		Email    string `json:"email"`
+		Name     string `json:"name"`
+		Brithday string `json:"brithday"`
+		Info     string `json:"info"`
+	}
+	var req EditReq
+	err := c.Bind(&req)
+	if err != nil {
+		return
+	}
+	err = u.svc.Edit(c, req.Email, domain.User{
+		Info:     req.Info,
+		Name:     req.Name,
+		Brithday: req.Brithday,
+	})
+	if err != nil {
+		c.String(http.StatusOK, "编辑信息失败")
+		return
+	}
+	c.String(http.StatusOK, "edit method 编辑成功")
+	return
+}
+func (u *UserHandler) Profile(c *gin.Context) {
+	type ProfileReq struct {
+		Email string `json:"email"`
+	}
+
+	name := c.Param("name")
+	c.String(http.StatusOK, "profile method info of "+name)
+}
