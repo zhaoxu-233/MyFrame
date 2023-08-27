@@ -16,7 +16,8 @@ const (
 	// 和上面比起来，用 ` 看起来就比较清爽
 	passwordRegexPattern = `^(?=.*[A-Za-z])(?=.*\d)(?=.*[$@$!%*#?&])[A-Za-z\d$@$!%*#?&]{8,}$`
 
-	userIdKey = "userId"
+	userIdKey       = "userId"
+	dateRegexPatter = "^([0-9]{4})-([0-9]{2})-([0-9]{2})$"
 )
 
 //在这个上边定义所以和user有关的路由
@@ -24,6 +25,7 @@ type UserHandler struct {
 	svc         *service.UserService
 	emailExp    *regexp.Regexp
 	passwordExp *regexp.Regexp
+	dateExp     *regexp.Regexp
 }
 
 func NewUserHandler(svc *service.UserService) *UserHandler {
@@ -31,6 +33,7 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 		svc:         svc,
 		emailExp:    regexp.MustCompile(emailRegexPattern, regexp.None),
 		passwordExp: regexp.MustCompile(passwordRegexPattern, regexp.None),
+		dateExp:     regexp.MustCompile(dateRegexPatter, regexp.None),
 	}
 }
 
@@ -144,6 +147,10 @@ func (u *UserHandler) Edit(c *gin.Context) {
 	if err != nil {
 		return
 	}
+	if len(req.Name) > 20 {
+		c.String(http.StatusOK, "昵称长度超过限制范围")
+		return
+	}
 	err = u.svc.Edit(c, req.Email, domain.User{
 		Info:     req.Info,
 		Name:     req.Name,
@@ -151,6 +158,19 @@ func (u *UserHandler) Edit(c *gin.Context) {
 	})
 	if err != nil {
 		c.String(http.StatusOK, "编辑信息失败")
+		return
+	}
+	ok, err := u.dateExp.MatchString(req.Brithday)
+	if err != nil {
+		c.String(http.StatusOK, "系统异常")
+		return
+	}
+	if !ok {
+		c.String(http.StatusOK, "生日信息格式错误")
+		return
+	}
+	if len(req.Info) > 300 {
+		c.String(http.StatusOK, "内容超出限制范围")
 		return
 	}
 	c.String(http.StatusOK, "edit method 编辑成功")
