@@ -5,6 +5,7 @@ import "time"
 //User领域对象，是DDD中的聚合根，即领域层面的entity
 //也可以交BO（business object）
 type User struct {
+	Id       int64
 	Email    string
 	PassWord string
 	Name     string

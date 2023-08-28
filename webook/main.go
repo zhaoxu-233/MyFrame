@@ -5,7 +5,10 @@ import (
 	"exercise_code/webook/internal/repository/dao"
 	"exercise_code/webook/internal/service"
 	"exercise_code/webook/internal/web"
+	"exercise_code/webook/internal/web/middleware"
 	"github.com/gin-contrib/cors"
+	"github.com/gin-contrib/sessions"
+	"github.com/gin-contrib/sessions/cookie"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -53,6 +56,13 @@ func initWebServer() *gin.Engine {
 		},
 		MaxAge: 12 * time.Hour,
 	}))
+	//添加session
+	//创建cookie并设置一个存储的位置
+	store := cookie.NewStore([]byte("secret"))
+	server.Use(sessions.Sessions("mysession", store))
+
+	server.Use(middleware.NewLoginMiddlewareBuilder().IgnorePaths("/users/login", "users/signup").Build())
+
 	return server
 }
 
