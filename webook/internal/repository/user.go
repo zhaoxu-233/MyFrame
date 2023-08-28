@@ -37,6 +37,7 @@ func (r *UserRepository) FindByEmail(c context.Context, email string) (domain.Us
 		return domain.User{}, err
 	}
 	return domain.User{
+		Id:       u.Id,
 		Email:    u.Email,
 		PassWord: u.PassWord,
 		Name:     u.Name,

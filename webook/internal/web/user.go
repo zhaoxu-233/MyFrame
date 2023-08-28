@@ -6,6 +6,7 @@ import (
 	"exercise_code/webook/internal/service"
 	"fmt"
 	regexp "github.com/dlclark/regexp2"
+	"github.com/gin-contrib/sessions"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -123,7 +124,7 @@ func (u *UserHandler) Login(c *gin.Context) {
 		return
 	}
 	//获取完前端信息，之后应该调用service中的业务逻辑代码
-	err = u.svc.Login(c, req.Email, req.PassWord)
+	user, err := u.svc.Login(c, req.Email, req.PassWord)
 	if err == service.ErrInvalidUserorPassWord {
 		c.String(http.StatusOK, "用户名或密码错误")
 		return
@@ -132,6 +133,13 @@ func (u *UserHandler) Login(c *gin.Context) {
 		c.String(http.StatusOK, "系统错误")
 		return
 	}
+	//登录成功后设置session
+	//初始化,创建session
+	sess := sessions.Default(c)
+	//设置session的值,刚在session里面的值
+	sess.Set("userId", user.Id)
+	//保存session
+	sess.Save()
 	c.String(http.StatusOK, "login method 登录成功")
 	return
 }
