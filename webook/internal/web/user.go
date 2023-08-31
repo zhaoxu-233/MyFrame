@@ -41,7 +41,7 @@ func NewUserHandler(svc *service.UserService) *UserHandler {
 func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	//分组路由
 	ug := server.Group("/users")
-	ug.POST("signup", u.SingUp)
+	ug.POST("signup", u.SignUp)
 	ug.POST("login", u.Login)
 	ug.POST("edit", u.Edit)
 	ug.POST("profile", u.Profile)
@@ -51,14 +51,14 @@ func (u *UserHandler) RegisterRoutes(server *gin.Engine) {
 	//server.GET("/user/profile", u.Profile)
 }
 
-func (u *UserHandler) SingUp(c *gin.Context) {
+func (u *UserHandler) SignUp(c *gin.Context) {
 	//内部结构体，不想被别的方法使用
 	//定义结构体来接受前端传过来的数据
 	type SignUpReq struct {
 		Email           string `json:"email"`
 		ConfirmPassword string `json:"confirmPassword"`
 		Password        string `json:"password"`
-		Context         string `json:"context"`
+		//Context         string `json:"context"`
 	}
 	var req SignUpReq
 	//bind方法会根据content-type来解析你的数据到req里面
@@ -138,6 +138,13 @@ func (u *UserHandler) Login(c *gin.Context) {
 	sess := sessions.Default(c)
 	//设置session的值,刚在session里面的值
 	sess.Set("userId", user.Id)
+	//可以设置一些options，options控制的事cookie的内容
+	sess.Options(sessions.Options{
+		//生产环境设置secure和httponly就可以
+		//Secure: true,//需要使用hhtps协议
+		HttpOnly: true,
+		MaxAge:   30, //控制cookie的过期时间
+	})
 	//保存session
 	sess.Save()
 	c.String(http.StatusOK, "login method 登录成功")
@@ -202,4 +209,13 @@ func (u *UserHandler) Profile(c *gin.Context) {
 	fmt.Println(user)
 	c.JSON(http.StatusOK, gin.H{"message": "查询成功", "data": user})
 
+}
+
+func (u *UserHandler) LogOut(c *gin.Context) {
+	sess := sessions.Default(c)
+	sess.Options(sessions.Options{
+		MaxAge: -1,
+	})
+	sess.Save()
+	c.String(http.StatusOK, "退出登录")
 }

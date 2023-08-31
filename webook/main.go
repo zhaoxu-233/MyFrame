@@ -8,7 +8,7 @@ import (
 	"exercise_code/webook/internal/web/middleware"
 	"github.com/gin-contrib/cors"
 	"github.com/gin-contrib/sessions"
-	"github.com/gin-contrib/sessions/cookie"
+	"github.com/gin-contrib/sessions/redis"
 	"github.com/gin-gonic/gin"
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -58,10 +58,22 @@ func initWebServer() *gin.Engine {
 	}))
 	//添加session
 	//创建cookie并设置一个存储的位置
-	store := cookie.NewStore([]byte("secret"))
-	server.Use(sessions.Sessions("mysession", store))
+	//store := cookie.NewStore([]byte("secret"))
+	//store := memstore.NewStore([]byte("MM653MID5HDZ3LLAG57SB294YBHS76UU"), []byte("XGYBI4C7GDFYKNXAKP0GAQBXLX7EBFUB"))
+	/*
+		第一个参数表示最大空闲链接数量
+		第二个就是网络协议tcp，不太可能用upd
+		第三个、四个就是连接信息和密码
+		第五个、六个就是两个key
+	*/
+	store, err := redis.NewStore(16, "tcp", "localhost:6379", "", []byte("MM653MID5HDZ3LLAG57SB294YBHS76UU"))
+	if err != nil {
+		panic(err)
+	}
+	//mystroe := &sqlx_store.Store{}
+	server.Use(sessions.Sessions("ssid", store))
 
-	server.Use(middleware.NewLoginMiddlewareBuilder().IgnorePaths("/users/login", "users/signup").Build())
+	server.Use(middleware.NewLoginMiddlewareBuilder().IgnorePaths("/users/login", "/users/signup").Build())
 
 	return server
 }

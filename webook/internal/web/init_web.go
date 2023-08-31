@@ -9,8 +9,9 @@ func RegisterRoutes() *gin.Engine {
 }
 func RegisterUserRoutes(server *gin.Engine) {
 	u := &UserHandler{}
-	server.POST("/user/signup", u.SingUp)
+	server.POST("/user/signup", u.SignUp)
 	server.POST("/user/login", u.Login)
 	server.POST("/user/edit", u.Edit)
 	server.GET("/user/profile", u.Profile)
+	server.POST("/users/logout", u.LogOut)
 }
