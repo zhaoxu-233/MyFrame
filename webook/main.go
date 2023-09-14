@@ -43,7 +43,9 @@ func initWebServer() *gin.Engine {
 		//AllowOrigins: []string{"http://localhost:3000/"},
 		//不写的话，默认接受全部方法
 		AllowMethods: []string{"PUT", "PATCH", "POST", "GET"},
-		AllowHeaders: []string{"content-type"},
+		AllowHeaders: []string{"content-type", "Authorization"},
+		//前端想要获取到token需要设置exposeheader参数
+		ExposeHeaders: []string{"x-jwt-token"},
 		//ExposeHeaders:    []string{"content-type"},
 		//是否允许带cookie
 		AllowCredentials: true,
@@ -73,7 +75,8 @@ func initWebServer() *gin.Engine {
 	//mystroe := &sqlx_store.Store{}
 	server.Use(sessions.Sessions("ssid", store))
 
-	server.Use(middleware.NewLoginMiddlewareBuilder().IgnorePaths("/users/login", "/users/signup").Build())
+	//server.Use(middleware.NewLoginMiddlewareBuilder().IgnorePaths("/users/login", "/users/signup").Build())
+	server.Use(middleware.NewLoginJWTMiddlewareBuilder().IgnorePaths("/users/login", "/users/signup").Build())
 
 	return server
 }
